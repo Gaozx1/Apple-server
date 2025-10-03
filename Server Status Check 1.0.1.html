@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft服务器监控中心</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 全局样式重置与基础配置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            color: #2d3748;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            line-height: 1.7;
+            background-image: 
+                linear-gradient(180deg, rgba(240,244,248,0.95), rgba(240,244,248,1)),
+                url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm63 31c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zM34 90c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm56-76c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%239fa6b2' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+        }
+
+        /* 标题样式优化 */
+        h1 {
+            color: #2e7d32; /* Minecraft主题绿 */
+            text-align: center;
+            margin-bottom: 35px;
+            font-weight: 600;
+            font-size: 2.2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            letter-spacing: 0.5px;
+        }
+
+        h1::after {
+            content: "";
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #2e7d32, transparent);
+            margin: 12px auto 0;
+            border-radius: 3px;
+        }
+
+        h2 {
+            color: #2d3748;
+            margin: 25px 0 15px;
+            font-weight: 500;
+            font-size: 1.5rem;
+        }
+
+        h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-weight: 500;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            letter-spacing: 0.3px;
+        }
+
+        h3::before {
+            content: "🎮";
+            margin-right: 10px;
+            font-size: 1.1em;
+            animation: bounce 2s infinite ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* 服务器组卡片样式 */
+        .server-group {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+        }
+
+        .server-group:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .server-group.active {
+            border-color: #2e7d32;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.1);
+        }
+
+        .server-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .server-group-title {
+            display: flex;
+            align-items: center;
+        }
+
+        .server-group-title h3 {
+            margin-bottom: 0;
+        }
+
+        .server-group-arrow {
+            font-size: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .server-group.active .server-group-arrow {
+            transform: rotate(180deg);
+        }
+
+        .server-group-content {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .server-group.active .server-group-content {
+            display: block;
+        }
+
+        .server-instance {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .server-instance:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 状态文字样式 */
+        .online {
+            color: #22c55e;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .online::before {
+            content: "●";
+            font-size: 0.8em;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        .offline {
+            color: #ef4444;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .offline::before {
+            content: "●";
+            font-size: 0.8em;
+            margin-right: 6px;
+        }
+
+        .timeout {
+            color: #f59e0b;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .timeout::before {
+            content: "●";
+            font-size: 0.8em;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        /* 按钮样式优化 */
+        button {
+            padding: 10px 20px;
+            background-color: #2e7d32;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+        }
+
+        button:hover {
+            background-color: #166534;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 3px rgba(46, 125, 50, 0.2);
+        }
+
+        button.secondary {
+            background-color: #64748b;
+            margin-left: 10px;
+        }
+
+        button.secondary:hover {
+            background-color: #475569;
+        }
+
+        button svg {
+            margin-right: 8px;
+        }
+
+        /* 玩家列表样式 */
+        .player-list {
+            margin-top: 12px;
+            padding-left: 24px;
+            color: #4b5563;
+        }
+
+        .player-list strong {
+            color: #2d3748;
+        }
+
+        /* 临时查询区域样式 */
+        .temp-server-section {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .input-group {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        label {
+            color: #4b5563;
+            font-weight: 500;
+            min-width: 100px;
+        }
+
+        input {
+            padding: 10px 12px;
+            margin-left: 10px;
+            width: 300px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #2e7d32;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+        }
+
+        .input-hint {
+            margin-left: 110px;
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        /* 最后更新时间样式 */
+        #last-update {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .last-update-container {
+            margin: 15px 0;
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        /* 服务说明样式 */
+        .service-note {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .qq-group {
+            margin-top: 10px;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        /* 图表容器样式 */
+        .chart-container {
+            height: 300px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        /* 7天数据统计区域 */
+        .stats-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+
+        .stats-section.visible {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background-color: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2e7d32;
+            margin: 5px 0;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        /* 加载指示器 */
+        .loading-indicator {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 提示信息 */
+        .tooltip {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .info-message {
+            color: #3b82f6;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        /* 数据管理区域 */
+        .data-management {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .data-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            input {
+                margin-left: 0;
+                margin-top: 8px;
+                width: 100%;
+            }
+
+            .input-hint {
+                margin-left: 0;
+                margin-top: 5px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            button {
+                width: 100%;
+                margin-top: 15px;
+            }
+
+            button.secondary {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .data-actions {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Minecraft服务器监控中心</h1>
+    
+    <!-- 苹果服务器组 -->
+    <div class="server-group" id="apple-server-group">
+        <div class="server-group-header">
+            <div class="server-group-title">
+                <h3>苹果服务器</h3>
+            </div>
+            <div class="server-group-arrow">▼</div>
+        </div>
+        <div class="server-group-content">
+            <!-- 主服务器 -->
+            <div class="server-instance" onclick="showServerStats('main')" id="main-server-card">
+                <h4>主服务器: aamt.rainplay.cn:16114</h4>
+                <p>状态: <span id="main-status" class="offline">检查中...</span></p>
+                <p>在线玩家: <span id="main-players">-</span></p>
+                <p>延迟: <span id="main-latency">-</span></p>
+                <div class="player-list" id="main-player-list"></div>
+                <div class="info-message" id="main-info"></div>
+                <div class="error-message" id="main-error"></div>
+                <p class="tooltip">点击查看7天数据统计</p>
+                <p class="qq-group">QQ群: 727291968</p>
+            </div>
+            
+            <!-- 备用服务器 -->
+            <div class="server-instance" onclick="showServerStats('backup')" id="backup-server-card">
+                <h4>备用服务器: aam.rainplay.cn:16114</h4>
+                <p>状态: <span id="backup-status" class="offline">检查中...</span></p>
+                <p>在线玩家: <span id="backup-players">-</span></p>
+                <p>延迟: <span id="backup-latency">-</span></p>
+                <div class="player-list" id="backup-player-list"></div>
+                <div class="info-message" id="backup-info"></div>
+                <div class="error-message" id="backup-error"></div>
+                <p class="tooltip">点击查看7天数据统计</p>
+                <p class="qq-group">QQ群: 727291968</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 黄蜀记大本营服务器组 -->
+    <div class="server-group" id="huangshuji-server-group">
+        <div class="server-group-header">
+            <div class="server-group-title">
+                <h3>黄蜀记大本营</h3>
+            </div>
+            <div class="server-group-arrow">▼</div>
+        </div>
+        <div class="server-group-content">
+            <!-- 主服务器 -->
+            <div class="server-instance" onclick="showServerStats('huangshuji-main')" id="huangshuji-main-server-card">
+                <h4>主服务器: frp-bag.com:63917</h4>
+                <p>状态: <span id="huangshuji-main-status" class="offline">检查中...</span></p>
+                <p>在线玩家: <span id="huangshuji-main-players">-</span></p>
+                <p>延迟: <span id="huangshuji-main-latency">-</span></p>
+                <div class="player-list" id="huangshuji-main-player-list"></div>
+                <div class="info-message" id="huangshuji-main-info"></div>
+                <div class="error-message" id="huangshuji-main-error"></div>
+                <p class="tooltip">点击查看7天数据统计</p>
+                <p class="qq-group">QQ群: 835058287</p>
+            </div>
+            
+            <!-- 备用服务器 -->
+            <div class="server-instance" onclick="showServerStats('huangshuji-backup')" id="huangshuji-backup-server-card">
+                <h4>备用服务器: frp-hub.com:57738</h4>
+                <p>状态: <span id="huangshuji-backup-status" class="offline">检查中...</span></p>
+                <p>在线玩家: <span id="huangshuji-backup-players">-</span></p>
+                <p>延迟: <span id="huangshuji-backup-latency">-</span></p>
+                <div class="player-list" id="huangshuji-backup-player-list"></div>
+                <div class="info-message" id="huangshuji-backup-info"></div>
+                <div class="error-message" id="huangshuji-backup-error"></div>
+                <p class="tooltip">点击查看7天数据统计</p>
+                <p class="qq-group">QQ群: 835058287</p>
+            </div>
+
+            <!-- 新域名服务器 -->
+            <div class="server-instance" onclick="showServerStats('huangshuji-domain')" id="huangshuji-domain-server-card">
+                <h4>域名服务器: huangshuji.top</h4>
+                <p>状态: <span id="huangshuji-domain-status" class="offline">检查中...</span></p>
+                <p>在线玩家: <span id="huangshuji-domain-players">-</span></p>
+                <p>延迟: <span id="huangshuji-domain-latency">-</span></p>
+                <div class="player-list" id="huangshuji-domain-player-list"></div>
+                <div class="info-message" id="huangshuji-domain-info"></div>
+                <div class="error-message" id="huangshuji-domain-error"></div>
+                <p class="tooltip">点击查看7天数据统计</p>
+                <p class="qq-group">QQ群: 835058287</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 主服务器7天数据统计 -->
+    <div class="stats-section" id="main-stats">
+        <h2>苹果主服务器7天数据统计</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">平均在线玩家</div>
+                <div class="stat-value" id="main-avg-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">最高在线玩家</div>
+                <div class="stat-value" id="main-peak-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">平均延迟</div>
+                <div class="stat-value" id="main-avg-latency">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">在线率</div>
+                <div class="stat-value" id="main-uptime">-</div>
+            </div>
+        </div>
+        
+        <h3>玩家人数趋势</h3>
+        <div class="chart-container">
+            <canvas id="main-players-chart"></canvas>
+        </div>
+        
+        <h3>延迟趋势</h3>
+        <div class="chart-container">
+            <canvas id="main-latency-chart"></canvas>
+        </div>
+    </div>
+    
+    <!-- 备用服务器7天数据统计 -->
+    <div class="stats-section" id="backup-stats">
+        <h2>苹果备用服务器7天数据统计</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">平均在线玩家</div>
+                <div class="stat-value" id="backup-avg-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">最高在线玩家</div>
+                <div class="stat-value" id="backup-peak-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">平均延迟</div>
+                <div class="stat-value" id="backup-avg-latency">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">在线率</div>
+                <div class="stat-value" id="backup-uptime">-</div>
+            </div>
+        </div>
+        
+        <h3>玩家人数趋势</h3>
+        <div class="chart-container">
+            <canvas id="backup-players-chart"></canvas>
+        </div>
+        
+        <h3>延迟趋势</h3>
+        <div class="chart-container">
+            <canvas id="backup-latency-chart"></canvas>
+        </div>
+    </div>
+    
+    <!-- 黄蜀记主服务器7天数据统计 -->
+    <div class="stats-section" id="huangshuji-main-stats">
+        <h2>黄蜀记主服务器7天数据统计</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">平均在线玩家</div>
+                <div class="stat-value" id="huangshuji-main-avg-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">最高在线玩家</div>
+                <div class="stat-value" id="huangshuji-main-peak-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">平均延迟</div>
+                <div class="stat-value" id="huangshuji-main-avg-latency">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">在线率</div>
+                <div class="stat-value" id="huangshuji-main-uptime">-</div>
+            </div>
+        </div>
+        
+        <h3>玩家人数趋势</h3>
+        <div class="chart-container">
+            <canvas id="huangshuji-main-players-chart"></canvas>
+        </div>
+        
+        <h3>延迟趋势</h3>
+        <div class="chart-container">
+            <canvas id="huangshuji-main-latency-chart"></canvas>
+        </div>
+    </div>
+    
+    <!-- 黄蜀记备用服务器7天数据统计 -->
+    <div class="stats-section" id="huangshuji-backup-stats">
+        <h2>黄蜀记备用服务器7天数据统计</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">平均在线玩家</div>
+                <div class="stat-value" id="huangshuji-backup-avg-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">最高在线玩家</div>
+                <div class="stat-value" id="huangshuji-backup-peak-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">平均延迟</div>
+                <div class="stat-value" id="huangshuji-backup-avg-latency">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">在线率</div>
+                <div class="stat-value" id="huangshuji-backup-uptime">-</div>
+            </div>
+        </div>
+        
+        <h3>玩家人数趋势</h3>
+        <div class="chart-container">
+            <canvas id="huangshuji-backup-players-chart"></canvas>
+        </div>
+        
+        <h3>延迟趋势</h3>
+        <div class="chart-container">
+            <canvas id="huangshuji-backup-latency-chart"></canvas>
+        </div>
+    </div>
+
+    <!-- 黄蜀记域名服务器7天数据统计 -->
+    <div class="stats-section" id="huangshuji-domain-stats">
+        <h2>黄蜀记域名服务器7天数据统计</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">平均在线玩家</div>
+                <div class="stat-value" id="huangshuji-domain-avg-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">最高在线玩家</div>
+                <div class="stat-value" id="huangshuji-domain-peak-players">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">平均延迟</div>
+                <div class="stat-value" id="huangshuji-domain-avg-latency">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">在线率</div>
+                <div class="stat-value" id="huangshuji-domain-uptime">-</div>
+            </div>
+        </div>
+        
+        <h3>玩家人数趋势</h3>
+        <div class="chart-container">
+            <canvas id="huangshuji-domain-players-chart"></canvas>
+        </div>
+        
+        <h3>延迟趋势</h3>
+        <div class="chart-container">
+            <canvas id="huangshuji-domain-latency-chart"></canvas>
+        </div>
+    </div>
+    
+    <!-- 临时查询服务器区域 -->
+    <div class="temp-server-section">
+        <h3>临时查询其他服务器</h3>
+        <div class="input-group">
+            <label>服务器地址:</label>
+            <input type="text" id="temp-address" placeholder="例如: mc.example.com 或 mc.example.com:25565">
+        </div>
+        <p class="input-hint">提示: 地址可包含端口，如 "mc.example.com:25565"</p>
+        
+        <button onclick="checkTempServer()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <line x1="11" y1="8" x2="11" y2="14"></line>
+                <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+            查询服务器
+        </button>
+        
+        <div class="status-box" id="temp-server-result" style="display: none; margin-top: 20px;">
+            <h3 id="temp-server-title">服务器状态</h3>
+            <p>状态: <span id="temp-status" class="offline">未查询</span></p>
+            <p>在线玩家: <span id="temp-players">-</span></p>
+            <p>延迟: <span id="temp-latency">-</span></p>
+            <div class="player-list" id="temp-player-list"></div>
+            <div class="info-message" id="temp-info"></div>
+        </div>
+    </div>
+
+    <!-- 数据管理区域 -->
+    <div class="data-management">
+        <h3>数据管理</h3>
+        <p>服务器监控数据会自动保存到本地浏览器存储中</p>
+        <div class="data-actions">
+            <button onclick="exportData()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                导出数据
+            </button>
+            <button class="secondary" onclick="clearData()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                清除数据
+            </button>
+            <button class="secondary" onclick="showDataInfo()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                数据信息
+            </button>
+        </div>
+        <div id="data-info" class="info-message" style="margin-top: 10px;"></div>
+    </div>
+    
+    <div style="display: flex; flex-wrap: wrap;">
+        <button onclick="checkStatus()">
+            <span class="loading-indicator" id="refresh-loading" style="display: none;"></span>
+            <span>刷新所有服务器状态</span>
+        </button>
+        
+        <button class="secondary" onclick="forceCheckServer('main')">
+            <span>强制刷新苹果主服务器</span>
+        </button>
+        
+        <button class="secondary" onclick="forceCheckServer('huangshuji-main')">
+            <span>强制刷新黄蜀记主服务器</span>
+        </button>
+    </div>
+    
+    <div class="last-update-container">
+        最后更新: <span id="last-update">从未</span>
+    </div>
+
+    <div class="service-note">
+        服务器查询服务由苹果服务器提供<br>
+        苹果服务器QQ群: 727291968 | 黄蜀记大本营QQ群: 835058287<br>
+        首页请邮箱联系: gzx20140715@qq.com
+    </div>
+
+    <script>
+        // 服务器数据存储 - 用于跟踪7天历史数据
+        const serverData = {
+            main: {
+                history: [],
+                playersChart: null,
+                latencyChart: null,
+                lastSuccessTime: 0,
+                consecutiveFailures: 0,
+                isFirstCheck: true
+            },
+            backup: {
+                history: [],
+                playersChart: null,
+                latencyChart: null,
+                lastSuccessTime: 0,
+                consecutiveFailures: 0,
+                isFirstCheck: true
+            },
+            'huangshuji-main': {
+                history: [],
+                playersChart: null,
+                latencyChart: null,
+                lastSuccessTime: 0,
+                consecutiveFailures: 0,
+                isFirstCheck: true
+            },
+            'huangshuji-backup': {
+                history: [],
+                playersChart: null,
+                latencyChart: null,
+                lastSuccessTime: 0,
+                consecutiveFailures: 0,
+                isFirstCheck: true
+            },
+            'huangshuji-domain': {
+                history: [],
+                playersChart: null,
+                latencyChart: null,
+                lastSuccessTime: 0,
+                consecutiveFailures: 0,
+                isFirstCheck: true
+            },
+            // 配置历史数据保留策略
+            maxHistoryEntries: 24 * 7, // 7天，每小时一条记录
+            updateInterval: 3600000    // 每小时记录一次数据
+        };
+
+        // 本地存储键名
+        const STORAGE_KEYS = {
+            SERVER_DATA: 'minecraft_monitor_server_data',
+            LAST_UPDATE: 'minecraft_monitor_last_update'
+        };
+
+        // API配置 - 提供多个备用API
+        const apiProviders = [
+            {
+                url: 'https://mcapi.us/server/status?ip={ip}&port={port}',
+                name: 'mcapi.us'
+            },
+            {
+                url: 'https://api.mcsrvstat.us/2/{ip}:{port}',
+                name: 'mcsrvstat.us',
+                responseParser: (data) => {
+                    return {
+                        online: data.online,
+                        players: {
+                            now: data.players?.online || 0,
+                            max: data.players?.max || 0,
+                            sample: data.players?.list?.map(name => ({name})) || []
+                        }
+                    };
+                }
+            },
+            {
+                url: 'https://api.minetools.eu/ping/{ip}/{port}',
+                name: 'minetools.eu',
+                responseParser: (data) => {
+                    if (data.error) throw new Error(data.error);
+                    return {
+                        online: true,
+                        players: {
+                            now: data.players?.online || 0,
+                            max: data.players?.max || 0,
+                            sample: data.players?.sample || []
+                        }
+                    };
+                }
+            }
+        ];
+
+        // 初始化本地存储
+        function initLocalStorage() {
+            // 尝试从本地存储加载数据
+            const savedData = localStorage.getItem(STORAGE_KEYS.SERVER_DATA);
+            const lastUpdate = localStorage.getItem(STORAGE_KEYS.LAST_UPDATE);
+            
+            if (savedData) {
+                try {
+                    const parsedData = JSON.parse(savedData);
+                    // 合并保存的数据到当前服务器数据
+                    Object.keys(parsedData).forEach(serverType => {
+                        if (serverData[serverType]) {
+                            serverData[serverType].history = parsedData[serverType].history || [];
+                        }
+                    });
+                    console.log('已从本地存储加载服务器数据');
+                } catch (e) {
+                    console.error('加载本地存储数据失败:', e);
+                }
+            }
+            
+            if (lastUpdate) {
+                document.getElementById('last-update').textContent = lastUpdate;
+            }
+        }
+
+        // 保存数据到本地存储
+        function saveToLocalStorage() {
+            try {
+                // 准备要保存的数据
+                const saveData = {};
+                Object.keys(serverData).forEach(serverType => {
+                    if (serverType !== 'maxHistoryEntries' && serverType !== 'updateInterval') {
+                        saveData[serverType] = {
+                            history: serverData[serverType].history
+                        };
+                    }
+                });
+                
+                localStorage.setItem(STORAGE_KEYS.SERVER_DATA, JSON.stringify(saveData));
+                localStorage.setItem(STORAGE_KEYS.LAST_UPDATE, new Date().toLocaleString());
+                
+                console.log('服务器数据已保存到本地存储');
+            } catch (e) {
+                console.error('保存到本地存储失败:', e);
+            }
+        }
+
+        // 导出数据
+        function exportData() {
+            try {
+                const dataToExport = {};
+                Object.keys(serverData).forEach(serverType => {
+                    if (serverType !== 'maxHistoryEntries' && serverType !== 'updateInterval') {
+                        dataToExport[serverType] = serverData[serverType].history;
+                    }
+                });
+                
+                const dataStr = JSON.stringify(dataToExport, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.download = `minecraft_server_data_${new Date().toISOString().split('T')[0]}.json`;
+                link.href = url;
+                link.click();
+                
+                URL.revokeObjectURL(url);
+                
+                document.getElementById('data-info').textContent = '数据导出成功！';
+                setTimeout(() => {
+                    document.getElementById('data-info').textContent = '';
+                }, 3000);
+            } catch (e) {
+                document.getElementById('data-info').textContent = '数据导出失败: ' + e.message;
+            }
+        }
+
+        // 清除数据
+        function clearData() {
+            if (confirm('确定要清除所有本地存储的服务器数据吗？此操作不可恢复。')) {
+                try {
+                    Object.keys(serverData).forEach(serverType => {
+                        if (serverType !== 'maxHistoryEntries' && serverType !== 'updateInterval') {
+                            serverData[serverType].history = [];
+                        }
+                    });
+                    
+                    localStorage.removeItem(STORAGE_KEYS.SERVER_DATA);
+                    localStorage.removeItem(STORAGE_KEYS.LAST_UPDATE);
+                    
+                    // 重新初始化图表
+                    initCharts();
+                    
+                    document.getElementById('data-info').textContent = '数据已清除！';
+                    setTimeout(() => {
+                        document.getElementById('data-info').textContent = '';
+                    }, 3000);
+                } catch (e) {
+                    document.getElementById('data-info').textContent = '清除数据失败: ' + e.message;
+                }
+            }
+        }
+
+        // 显示数据信息
+        function showDataInfo() {
+            let totalEntries = 0;
+            let serverCount = 0;
+            
+            Object.keys(serverData).forEach(serverType => {
+                if (serverType !== 'maxHistoryEntries' && serverType !== 'updateInterval') {
+                    totalEntries += serverData[serverType].history.length;
+                    serverCount++;
+                }
+            });
+            
+            const info = `共监控 ${serverCount} 个服务器，存储了 ${totalEntries} 条历史记录`;
+            document.getElementById('data-info').textContent = info;
+            
+            setTimeout(() => {
+                document.getElementById('data-info').textContent = '';
+            }, 5000);
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 苹果服务器图表
+            serverData.main.playersChart = createChart('main-players-chart', '玩家人数');
+            serverData.main.latencyChart = createChart('main-latency-chart', '延迟 (ms)');
+            serverData.backup.playersChart = createChart('backup-players-chart', '玩家人数');
+            serverData.backup.latencyChart = createChart('backup-latency-chart', '延迟 (ms)');
+            
+            // 黄蜀记服务器图表
+            serverData['huangshuji-main'].playersChart = createChart('huangshuji-main-players-chart', '玩家人数');
+            serverData['huangshuji-main'].latencyChart = createChart('huangshuji-main-latency-chart', '延迟 (ms)');
+            serverData['huangshuji-backup'].playersChart = createChart('huangshuji-backup-players-chart', '玩家人数');
+            serverData['huangshuji-backup'].latencyChart = createChart('huangshuji-backup-latency-chart', '延迟 (ms)');
+            serverData['huangshuji-domain'].playersChart = createChart('huangshuji-domain-players-chart', '玩家人数');
+            serverData['huangshuji-domain'].latencyChart = createChart('huangshuji-domain-latency-chart', '延迟 (ms)');
+        }
+
+        // 创建图表
+        function createChart(canvasId, label) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label,
+                        data: [],
+                        borderColor: label.includes('延迟') ? '#3b82f6' : '#22c55e',
+                        backgroundColor: label.includes('延迟') ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: label
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 显示/隐藏服务器统计数据
+        function showServerStats(serverType) {
+            // 隐藏所有统计区域
+            document.getElementById('main-stats').classList.remove('visible');
+            document.getElementById('backup-stats').classList.remove('visible');
+            document.getElementById('huangshuji-main-stats').classList.remove('visible');
+            document.getElementById('huangshuji-backup-stats').classList.remove('visible');
+            document.getElementById('huangshuji-domain-stats').classList.remove('visible');
+            
+            // 移除所有卡片的激活状态
+            document.getElementById('main-server-card').classList.remove('active');
+            document.getElementById('backup-server-card').classList.remove('active');
+            document.getElementById('huangshuji-main-server-card').classList.remove('active');
+            document.getElementById('huangshuji-backup-server-card').classList.remove('active');
+            document.getElementById('huangshuji-domain-server-card').classList.remove('active');
+            
+            // 显示选中的统计区域并激活对应卡片
+            document.getElementById(`${serverType}-stats`).classList.add('visible');
+            document.getElementById(`${serverType}-server-card`).classList.add('active');
+            
+            // 更新图表数据
+            updateServerCharts(serverType);
+        }
+
+        // 更新服务器图表
+        function updateServerCharts(serverType) {
+            const server = serverData[serverType];
+            if (server.history.length === 0) return;
+            
+            // 准备图表数据
+            const labels = server.history.map(entry => formatDateForChart(entry.timestamp));
+            const playersData = server.history.map(entry => entry.players);
+            const latencyData = server.history.map(entry => entry.latency);
+            
+            // 更新玩家图表
+            server.playersChart.data.labels = labels;
+            server.playersChart.data.datasets[0].data = playersData;
+            server.playersChart.update();
+            
+            // 更新延迟图表
+            server.latencyChart.data.labels = labels;
+            server.latencyChart.data.datasets[0].data = latencyData;
+            server.latencyChart.update();
+            
+            // 计算并更新统计数据
+            calculateServerStats(serverType);
+        }
+
+        // 计算服务器统计数据
+        function calculateServerStats(serverType) {
+            const server = serverData[serverType];
+            if (server.history.length === 0) return;
+            
+            // 过滤掉离线状态的数据
+            const onlineEntries = server.history.filter(entry => entry.online);
+            
+            if (onlineEntries.length === 0) {
+                document.getElementById(`${serverType}-avg-players`).textContent = '0';
+                document.getElementById(`${serverType}-peak-players`).textContent = '0';
+                document.getElementById(`${serverType}-avg-latency`).textContent = '0ms';
+                document.getElementById(`${serverType}-uptime`).textContent = '0%';
+                return;
+            }
+            
+            // 计算平均玩家数
+            const totalPlayers = onlineEntries.reduce((sum, entry) => sum + entry.players, 0);
+            const avgPlayers = (totalPlayers / onlineEntries.length).toFixed(1);
+            
+            // 计算最高玩家数
+            const peakPlayers = Math.max(...onlineEntries.map(entry => entry.players));
+            
+            // 计算平均延迟
+            const totalLatency = onlineEntries.reduce((sum, entry) => sum + entry.latency, 0);
+            const avgLatency = Math.round(totalLatency / onlineEntries.length) + 'ms';
+            
+            // 计算在线率
+            const uptimePercentage = Math.round((onlineEntries.length / server.history.length) * 100) + '%';
+            
+            // 更新UI
+            document.getElementById(`${serverType}-avg-players`).textContent = avgPlayers;
+            document.getElementById(`${serverType}-peak-players`).textContent = peakPlayers;
+            document.getElementById(`${serverType}-avg-latency`).textContent = avgLatency;
+            document.getElementById(`${serverType}-uptime`).textContent = uptimePercentage;
+        }
+
+        // 格式化日期用于图表显示
+        function formatDateForChart(timestamp) {
+            const date = new Date(timestamp);
+            return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:00`;
+        }
+
+        // 保存服务器数据到历史记录
+        function saveServerHistory(serverType, data) {
+            const now = Date.now();
+            const server = serverData[serverType];
+            
+            // 检查是否需要添加新记录（基于时间间隔）
+            const lastEntry = server.history[server.history.length - 1];
+            if (!lastEntry || now - lastEntry.timestamp >= serverData.updateInterval) {
+                server.history.push({
+                    timestamp: now,
+                    online: data.online,
+                    players: data.online ? data.players.now : 0,
+                    latency: data.online ? data.latency : null
+                });
+                
+                // 保持历史记录不超过最大数量
+                if (server.history.length > serverData.maxHistoryEntries) {
+                    server.history.shift();
+                }
+                
+                // 保存到本地存储
+                saveToLocalStorage();
+                
+                // 如果当前显示的是该服务器的统计，则更新图表
+                if (document.getElementById(`${serverType}-stats`).classList.contains('visible')) {
+                    updateServerCharts(serverType);
+                }
+            }
+        }
+
+        // 检查预设服务器状态
+        function checkStatus() {
+            // 显示刷新加载状态
+            document.getElementById('refresh-loading').style.display = 'inline-block';
+            
+            // 并行检查所有服务器
+            const checks = [
+                parseAndCheckServer('aamt.rainplay.cn:16114', 
+                    'main-status', 'main-players', 'main-latency', 'main-player-list', 'main'),
+                parseAndCheckServer('aam.rainplay.cn:16114', 
+                    'backup-status', 'backup-players', 'backup-latency', 'backup-player-list', 'backup'),
+                parseAndCheckServer('frp-bag.com:63917', 
+                    'huangshuji-main-status', 'huangshuji-main-players', 'huangshuji-main-latency', 'huangshuji-main-player-list', 'huangshuji-main'),
+                parseAndCheckServer('frp-hub.com:57738', 
+                    'huangshuji-backup-status', 'huangshuji-backup-players', 'huangshuji-backup-latency', 'huangshuji-backup-player-list', 'huangshuji-backup'),
+                parseAndCheckServer('huangshuji.top', 
+                    'huangshuji-domain-status', 'huangshuji-domain-players', 'huangshuji-domain-latency', 'huangshuji-domain-player-list', 'huangshuji-domain')
+            ];
+            
+            // 当所有检查完成后隐藏加载状态
+            Promise.all(checks).finally(() => {
+                document.getElementById('refresh-loading').style.display = 'none';
+            });
+            
+            // 更新最后检查时间
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+        }
+        
+        // 强制刷新特定服务器
+        function forceCheckServer(serverType) {
+            const addresses = {
+                main: 'aamt.rainplay.cn:16114',
+                backup: 'aam.rainplay.cn:16114',
+                'huangshuji-main': 'frp-bag.com:63917',
+                'huangshuji-backup': 'frp-hub.com:57738',
+                'huangshuji-domain': 'huangshuji.top'
+            };
+            
+            const elements = {
+                main: {
+                    status: 'main-status',
+                    players: 'main-players',
+                    latency: 'main-latency',
+                    list: 'main-player-list'
+                },
+                backup: {
+                    status: 'backup-status',
+                    players: 'backup-players',
+                    latency: 'backup-latency',
+                    list: 'backup-player-list'
+                },
+                'huangshuji-main': {
+                    status: 'huangshuji-main-status',
+                    players: 'huangshuji-main-players',
+                    latency: 'huangshuji-main-latency',
+                    list: 'huangshuji-main-player-list'
+                },
+                'huangshuji-backup': {
+                    status: 'huangshuji-backup-status',
+                    players: 'huangshuji-backup-players',
+                    latency: 'huangshuji-backup-latency',
+                    list: 'huangshuji-backup-player-list'
+                },
+                'huangshuji-domain': {
+                    status: 'huangshuji-domain-status',
+                    players: 'huangshuji-domain-players',
+                    latency: 'huangshuji-domain-latency',
+                    list: 'huangshuji-domain-player-list'
+                }
+            };
+            
+            // 重置连续失败计数，强制使用第一个API
+            serverData[serverType].consecutiveFailures = 0;
+            // 强制刷新后不再视为首次查询
+            serverData[serverType].isFirstCheck = false;
+            
+            // 清除提示信息
+            document.getElementById(`${serverType}-info`).textContent = '';
+            
+            // 执行检查
+            parseAndCheckServer(
+                addresses[serverType],
+                elements[serverType].status,
+                elements[serverType].players,
+                elements[serverType].latency,
+                elements[serverType].list,
+                serverType
+            );
+            
+            // 更新最后检查时间
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+        }
+        
+        // 解析服务器地址并检查状态（支持带端口的地址）
+        function parseAndCheckServer(address, statusId, playersId, latencyId, playerListId, serverType) {
+            // 拆分地址和端口（格式支持：address:port 或 address）
+            const parts = address.split(':');
+            const ip = parts[0];
+            const port = parts.length > 1 ? parseInt(parts[1]) : 25565; // 默认端口
+            
+            return checkServer(ip, port, statusId, playersId, latencyId, playerListId, serverType);
+        }
+        
+        // 检查临时输入的服务器
+        function checkTempServer() {
+            const address = document.getElementById('temp-address').value.trim();
+            
+            // 验证输入
+            if (!address) {
+                alert('请输入服务器地址');
+                return;
+            }
+            
+            // 显示结果区域
+            document.getElementById('temp-server-result').style.display = 'block';
+            document.getElementById('temp-server-title').textContent = `服务器: ${address}`;
+            
+            // 解析并检查服务器状态
+            const parts = address.split(':');
+            const ip = parts[0];
+            const port = parts.length > 1 ? parseInt(parts[1]) : 25565;
+            
+            // 标记为首次查询
+            document.getElementById('temp-info').textContent = '';
+            
+            checkServer(ip, port, 'temp-status', 'temp-players', 'temp-latency', 'temp-player-list', 'temp');
+            
+            // 更新最后检查时间
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+        }
+        
+        // 带超时控制的fetch
+        function fetchWithTimeout(url, timeout = 8000) {
+            return Promise.race([
+                fetch(url),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('请求超时')), timeout)
+                )
+            ]);
+        }
+        
+        // 尝试使用指定API查询服务器
+        function tryApiProvider(provider, ip, port, startTime) {
+            const url = provider.url.replace('{ip}', ip).replace('{port}', port);
+            
+            return fetchWithTimeout(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 计算延迟
+                    const latency = Date.now() - startTime;
+                    
+                    // 使用API特定的响应解析器（如果有）
+                    const parsedData = provider.responseParser 
+                        ? provider.responseParser(data) 
+                        : {
+                            online: data.online,
+                            players: {
+                                now: data.players?.now || 0,
+                                max: data.players?.max || 0,
+                                sample: data.players?.sample || []
+                            }
+                        };
+                    
+                    return {
+                        success: true,
+                        data: {
+                            ...parsedData,
+                            latency: latency
+                        },
+                        provider: provider.name
+                    };
+                })
+                .catch(error => {
+                    return {
+                        success: false,
+                        error: error.message,
+                        provider: provider.name
+                    };
+                });
+        }
+        
+        // 通用的服务器检查函数，带多API重试机制
+        function checkServer(ip, port, statusId, playersId, latencyId, playerListId, serverType = null) {
+            const statusElement = document.getElementById(statusId);
+            const playersElement = document.getElementById(playersId);
+            const latencyElement = document.getElementById(latencyId);
+            const playerListElement = document.getElementById(playerListId);
+            const errorElement = serverType && serverType !== 'temp' ? document.getElementById(`${serverType}-error`) : null;
+            const infoElement = serverType ? document.getElementById(`${serverType}-info`) : null;
+            
+            // 显示加载状态
+            statusElement.textContent = '检查中...';
+            statusElement.className = '';
+            playersElement.textContent = '-';
+            latencyElement.textContent = '-';
+            playerListElement.innerHTML = '';
+            if (errorElement) errorElement.textContent = '';
+            if (infoElement) infoElement.textContent = '';
+            
+            const startTime = Date.now();
+            let currentProviderIndex = 0;
+            
+            // 如果是已知服务器且有连续失败，从下一个API开始尝试
+            if (serverType && serverType !== 'temp' && serverData[serverType].consecutiveFailures > 0) {
+                currentProviderIndex = serverData[serverType].consecutiveFailures % apiProviders.length;
+            }
+            
+            // 递归尝试API提供者
+            function tryNextProvider() {
+                if (currentProviderIndex >= apiProviders.length) {
+                    // 所有API都尝试过且失败
+                    statusElement.textContent = '无法连接';
+                    statusElement.className = 'offline';
+                    latencyElement.textContent = '-';
+                    
+                    if (serverType && serverType !== 'temp') {
+                        // 更新失败计数
+                        serverData[serverType].consecutiveFailures++;
+                        errorElement.textContent = `所有API均无法连接，已尝试 ${apiProviders.length} 个服务`;
+                        
+                        // 保存离线状态
+                        saveServerHistory(serverType, {
+                            online: false,
+                            players: { now: 0, max: 0 },
+                            latency: 0
+                        });
+                    } else if (serverType === 'temp') {
+                        infoElement.textContent = '因为技术原因，初次查询延迟过高为正常现象，请刷新后重试';
+                    }
+                    
+                    return Promise.reject(new Error('所有API提供者均无法访问'));
+                }
+                
+                // 尝试当前API提供者
+                const provider = apiProviders[currentProviderIndex];
+                currentProviderIndex++;
+                
+                return tryApiProvider(provider, ip, port, startTime)
+                    .then(result => {
+                        if (result.success) {
+                            // 成功获取数据
+                            const data = result.data;
+                            
+                            latencyElement.textContent = data.latency + 'ms';
+                            
+                            if (data.online) {
+                                statusElement.textContent = '在线';
+                                statusElement.className = 'online';
+                                playersElement.textContent = data.players.now + '/' + data.players.max;
+                                
+                                // 显示玩家列表
+                                if (data.players.sample.length > 0) {
+                                    let playerHTML = '<strong>玩家列表:</strong><br>';
+                                    data.players.sample.forEach(player => {
+                                        playerHTML += '- ' + player.name + '<br>';
+                                    });
+                                    playerListElement.innerHTML = playerHTML;
+                                } else {
+                                    playerListElement.innerHTML = '无在线玩家或无法获取列表';
+                                }
+                                
+                                // 检查是否为首次查询且延迟过高
+                                if (serverType && data.latency > 500) {
+                                    if (serverType === 'temp') {
+                                        infoElement.textContent = '因为技术原因，初次查询延迟过高为正常现象，请刷新后重试';
+                                    } else if (serverData[serverType].isFirstCheck) {
+                                        infoElement.textContent = '因为技术原因，初次查询延迟过高为正常现象，请刷新后重试';
+                                    }
+                                }
+                            } else {
+                                statusElement.textContent = '离线';
+                                statusElement.className = 'offline';
+                            }
+                            
+                            // 如果是预设服务器，保存历史数据
+                            if (serverType && serverType !== 'temp') {
+                                // 重置失败计数
+                                serverData[serverType].consecutiveFailures = 0;
+                                serverData[serverType].lastSuccessTime = Date.now();
+                                // 首次查询完成后标记为非首次
+                                serverData[serverType].isFirstCheck = false;
+                                
+                                saveServerHistory(serverType, data);
+                            }
+                            
+                            return Promise.resolve();
+                        } else {
+                            // 当前API失败，尝试下一个
+                            if (serverType && serverType !== 'temp') {
+                                console.log(`API ${result.provider} 失败: ${result.error}`);
+                            }
+                            return tryNextProvider();
+                        }
+                    });
+            }
+            
+            // 开始尝试API
+            return tryNextProvider();
+        }
+        
+        // 页面加载后初始化
+        window.onload = function() {
+            // 先初始化本地存储
+            initLocalStorage();
+            
+            // 然后初始化图表和其他功能
+            initCharts();
+            checkStatus();
+            
+            // 设置服务器组点击事件
+            document.querySelectorAll('.server-group').forEach(group => {
+                group.addEventListener('click', function(e) {
+                    // 如果点击的是内部服务器实例，则不切换展开状态
+                    if (e.target.closest('.server-instance')) {
+                        return;
+                    }
+                    this.classList.toggle('active');
+                });
+            });
+            
+            // 设置定时刷新（每5分钟）
+            setInterval(checkStatus, 300000);
+        };
+    </script>
+</body>
+</html>
